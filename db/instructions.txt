@@ -1,0 +1,5 @@
+mysql -u root -p
+CREATE DATABASE Network;
+USE Network;
+CREATE USER 'jake_network'@'192.168.1.112' IDENTIFIED BY 'vvVN0EEADb4ZI';
+GRANT ALL PRIVILEGES ON Network.* TO 'jake_network'@'%' IDENTIFIED BY 'vvVN0EEADb4ZI';
