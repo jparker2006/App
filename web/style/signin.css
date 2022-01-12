@@ -1,98 +1,131 @@
 body {
     background-color: white;
+    margin: 0;
 }
 
 * {
     box-sizing: border-box;
 }
 
+.si_topBar {
+    width: 100%;
+    height: 65px;
+    background-color: #00a550;
+    margin: 0;
+    text-align: center;
+    font-family: 'Open Sans', sans-serif;
+    font-weight: 300;
+    font-size: 35px;
+    color: white;
+    padding-top: 5px;
+}
+
+.si_topBarName {
+    font-family: 'Ruda', sans-serif;
+    font-weight: 700;
+}
 
 .si {
-    width: 350px;
+    height: 500px;
+    width: 80%;
+    margin-right: auto;
+    margin-left: auto;
+}
+
+.siDivider {
+    height: 500px;
+    position: relative;
+    float: left;
+}
+
+.si_logo {
+    width: 300px;
+    height: 300px;
+    position: absolute;
+    top: 20%;
+    left: 100%;
+    -ms-transform: translate(-100%, -20%);
+    transform: translate(-100%, -20%);
+}
+
+.si_container {
     height: 400px;
-    border-top: 7px solid #2541B2;
-    box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2), 0 6px 20px 0 rgba(0, 0, 0, 0.19);
-    border-radius: 4.5px;
-    margin: 20px auto auto auto;
-    background-color: rgba(170, 184, 194, 0.18);
+    width: 350px;
+    margin-left: auto;
+    margin-right: auto;
+    margin-top: 30px;
 }
 
 .si_text {
     font-family: 'Open Sans', sans-serif;
-    text-align: center;
-    margin-top: 3px;
-    color: #14171A;
-    font-weight: 300;
-}
-
-.si_header {
-    font-size: 40px;
-}
-
-.si_subHead {
-    font-size: 17px;
+    color: black;
+    margin-bottom: 17px;
 }
 
 .si_textBox {
-    font-family: 'Open Sans', sans-serif;
-    margin-top: 13px;
-    border-radius: 0px;
-    width: 246px;
-    height: 50px;
+    width: 350px;
+    height: 35px;
     font-size: 20px;
-    color: #14171A;
-    font-weight: 400;
-    text-align: left;
-    border: 2px solid white;
-    text-indent: 11px;
-    background-color: white;
+    border: 2px solid black;
 }
 
 .si_textBox::placeholder {
-    color: rgba(101, 119, 134, 1);
+    color: #000000;
+    opacity: 1;
+}
+.si_textBox::-webkit-input-placeholder {
+    color: #000000;
+    opacity: 1;
+}
+.si_textBox::-moz-placeholder {
+    color: #000000;
+    opacity: 1;
+}
+.si_textBox:-ms-input-placeholder {
+    color: #000000;
+    opacity: 1;
+}
+.si_textBox:-moz-placeholder {
+    color: #000000;
+    opacity: 1;
 }
 
 .si_textBox:focus {
     outline: none;
-    border: 2px solid #FF00BF;
+    border: 2px solid #00a550;
 }
 
-.si_innerContainer {
-    text-align: center;
-}
-
-.si_button {
-    font-size: 30px;
-    color: #06BEE1;
-    font-weight: 500;
-    font-family: 'Roboto', sans-serif;
-    text-align: center;
-    cursor: pointer;
-    transition-duration: 0.25s;
-    text-indent: 0px;
-    margin-top: 6px;
-}
-
-.si_button:hover {
-    background-color: #AAB8C2;
-    border: 2px solid #AAB8C2;
+.si_createButton {
+    width: 150px;
+    height: 30px;
+    float: right;
+    margin-right: 15px;
+    border: 0;
     color: white;
+    font-family: 'Roboto', sans-serif;
+    background-color: #00a550;
+    cursor: pointer;
+    font-size: 16px;
+}
+
+.si_checkContainer {
+    height: 30px;
+    text-align: center;
+    width: 150px;
+    float: left;
+    padding-left: 20px;
+    padding-top: 2px;
+}
+
+.si_rememberMe {
+    float: left;
+    font-family: 'Open Sans', sans-serif;
+    font-size: 16px;
+    cursor: pointer;
 }
 
 .si_checkbox {
     cursor: pointer;
-    color: #A4C639;
-    margin-top: 6px;
+    height: 18px;
+    float: left;
 }
-
-.si_checkbox:checked {
-    background: #06BEE1;
-}
-
-.si_link {
-    color: #06BEE1;
-    text-decoration: none;
-}
-
-
-
