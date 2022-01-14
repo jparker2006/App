@@ -18,28 +18,74 @@ echo $sFeedback;
 
 function createAccount ($jsonUserData) {
     $objUserData = json_decode($jsonUserData);
-    $sSQL = "INSERT INTO Users (username, password) VALUES ('" . $objUserData->username . "', '" . $objUserData->password . "')";
-    QueryDB ($sSQL);
-    $sSQL = "SELECT * FROM Users WHERE username='" . $objUserData->username . "'";
-    $tResult = QueryDB ($sSQL);
+
+    $dbhost = 'localhost';
+    $dbuser = 'jake_network';
+    $dbpass = 'vvVN0EEADb4ZI';
+    $db = "Network";
+    $dbconnect = new mysqli($dbhost, $dbuser, $dbpass, $db);
+
+    $stmtI = $dbconnect->prepare("INSERT INTO Users (username, password, info) VALUES (?, ?, ?)");
+    $stmtI->bind_param("sss", $objUserData->username, $objUserData->password, json_encode($objUserData->info));
+    $stmtI->execute();
+    $stmtI->close();
+
+    $stmtS = $dbconnect->prepare("SELECT * FROM Users WHERE username=?");
+    $stmtS->bind_param("s", $objUserData->username);
+    $stmtS->execute();
+    $tResult = $stmtS->get_result();
     $row = $tResult->fetch_assoc();
+    $dbconnect->close();
+
     return $row["id"];
 }
 
 function uniqueUN ($sUsername) {
-    $sSQL = "SELECT * FROM Users WHERE username='" . $sUsername . "'";
-    $tResult = QueryDB ($sSQL);
+    $dbhost = 'localhost';
+    $dbuser = 'jake_network';
+    $dbpass = 'vvVN0EEADb4ZI';
+    $db = "Network";
+    $dbconnect = new mysqli($dbhost, $dbuser, $dbpass, $db);
+
+    $stmt = $dbconnect->prepare("SELECT * FROM Users WHERE username=?");
+    $stmt->bind_param("s", $sUsername);
+    $stmt->execute();
+    $tResult = $stmt->get_result();
+    $stmt->close();
+    $dbconnect->close();
+
     return 0 == $tResult->num_rows ? $sUsername : null;
 }
 
 function login ($jsonCredentials) {
     $objCredentials = json_decode($jsonCredentials);
-    $sSQL = "SELECT * FROM Users WHERE username='" . $objCredentials->username . "' AND password='" . $objCredentials->password . "'";
-    $tResult = QueryDB ($sSQL);
+    $dbhost = 'localhost';
+    $dbuser = 'jake_network';
+    $dbpass = 'vvVN0EEADb4ZI';
+    $db = "Network";
+    $dbconnect = new mysqli($dbhost, $dbuser, $dbpass, $db);
+
+    $stmt = $dbconnect->prepare("SELECT * FROM Users WHERE username=? AND password=?");
+    $stmt->bind_param("ss", $objCredentials->username, $objCredentials->password);
+    $stmt->execute();
+    $tResult = $stmt->get_result();
+    $row = $tResult->fetch_assoc();
+    $stmt->close();
+    $dbconnect->close();
+
     if (1 != $tResult->num_rows)
         return false;
-    $row = $tResult->fetch_assoc();
-    return $row["id"];
+
+    $sSQL = "UPDATE Users SET lastlogin=CURRENT_TIMESTAMP WHERE id=" . $row["id"];
+    QueryDB ($sSQL);
+
+    $objUserData = new stdClass();
+    $objUserData->id= $row["id"];
+    $objUserData->info = $row["info"];
+    $objUserData->lastlogin = $row["lastlogin"];
+    $objUserData->created = $row["created"];
+
+    return json_encode($objUserData);
 }
 
 function QueryDB ($sSQL) {

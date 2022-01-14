@@ -5,13 +5,6 @@ var HashThis = (sText, nRounds) => {
     return sText;
 }
 
-function Toast(sMess) {
-    if (document.getElementById('Toast')) {
-        document.getElementById('Toast').innerHTML = "<div class='ToastMsg'>"+sMess+"</div>";
-        setTimeout(function(){ document.getElementById('Toast').innerHTML = ''; }, 5000);
-    }
-}
-
 function setCookie(c_name, value, exdays) {
   var exdate=new Date();
   exdate.setDate(exdate.getDate() + exdays);
