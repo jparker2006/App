@@ -25,9 +25,9 @@ function SignUpFrame() {
     sPage += "<div class='si_container'>";
     sPage += "<span class='si_text'>CREATE AN ACCOUNT</span>";
     sPage += "<a href=\"javascript:LoginFrame()\" class='si_text' style='float: right; font-size: 12px; margin-top: 4px;'>or login</a>"
-    sPage += "<input id='first' type='input' class='si_text si_textBox' placeholder='First Name' maxlength=40 title='first name' /><br>";
-    sPage += "<input id='last' type='input' class='si_text si_textBox' placeholder='Last Name' maxlength=40 title='last name' /><br>";
-    sPage += "<input id='username' type='input' class='si_text si_textBox' placeholder='Username' maxlength=40 title='username' /><br>";
+    sPage += "<input id='first' type='input' class='si_text si_textBox' placeholder='First Name' maxlength=20 title='first name' /><br>";
+    sPage += "<input id='last' type='input' class='si_text si_textBox' placeholder='Last Name' maxlength=20 title='last name' /><br>";
+    sPage += "<input id='username' type='input' class='si_text si_textBox' placeholder='Username' maxlength=20 title='username' /><br>";
     sPage += "<input id='password' type='password' class='si_text si_textBox' placeholder='Password' title='password' /><br>";
     sPage += "<input id='confirm' type='password' class='si_text si_textBox' placeholder='Confirm Password' title='confirm password' />";
     sPage += "<div class='si_checkContainer'>"
@@ -54,7 +54,7 @@ function LoginFrame() {
     sPage += "<div class='si_container'>";
     sPage += "<span class='si_text'>LOGIN</span>";
     sPage += "<a href=\"javascript:SignUpFrame()\" class='si_text' style='float: right; font-size: 12px; margin-top: 4px;'>or sign up</a>"
-    sPage += "<input id='username' type='input' class='si_text si_textBox' placeholder='Username' maxlength=40 title='username' /><br>";
+    sPage += "<input id='username' type='input' class='si_text si_textBox' placeholder='Username' maxlength=20 title='username' /><br>";
     sPage += "<input id='password' type='password' class='si_text si_textBox' placeholder='Password' title='password' /><br>";
     sPage += "<div class='si_checkContainer'>"
     sPage += "<input id='Memory' class='si_checkbox si_loginButton si_loginCheckbox' type='checkbox' checked=true>";
@@ -173,6 +173,8 @@ function Login(UN, PW) {
 }
 
 function MainFrame() {
+    document.getElementById('Body').style.backgroundColor = "white";
+
     let sPage = "";
     sPage += "<div class='h_topBar'>";
     sPage += "<div class='h_topBarName'>parkerchat</div>"; // put messages icon on this bar
@@ -190,7 +192,7 @@ function MainFrame() {
     sPage += "<div class='h_container'>";
 
     sPage += "<div class='h_accountContainer'>";
-    sPage += "<button onClick='AccountInfoSetup(" + " g_objUserData.username " + ")'>Edit Profile</button>";
+    sPage += "<button onClick='AccountInfoSetup(\"" + g_objUserData.username + "\")'>Edit Profile</button>";
     sPage += "</div>";
 
     sPage += "<div class='h_feedContainer'>";
@@ -211,60 +213,250 @@ function AccountInfoSetup(sUsername) {
 }
 
 function AccountInfoFrame(jsonUserData) {
+    document.getElementById('Body').style.backgroundColor = "#4267B2";
+
     let objUserData = JSON.parse(jsonUserData);
     let objUserInfo = JSON.parse(objUserData.info);
 
+    if (objUserData.username === g_objUserData.username) {
+        AccountEditFrame(objUserData, objUserInfo);
+        return;
+    }
+    let sFullName = objUserInfo.first.charAt(0).toUpperCase() + objUserInfo.first.slice(1) + " " + objUserInfo.last.charAt(0).toUpperCase() + objUserInfo.last.slice(1);
+
     let sPage = "";
-    sPage += "<div class='h_topBar' style='margin-bottom: 20px;'>";
+    sPage += "<div class='h_topBar' style='border-bottom: none;'>";
     sPage += "<div class='h_topBarName'>parkerchat</div>";
+    sPage += "<img class='h_searchIcon' src='images/searchicon.png' onClick='search()'>";
+    sPage += "<input type='text' id='search' class='h_searchBox' placeholder='Search'>";
     sPage += "<button style='width: 64px; height: 100%; float: right;' onClick='MainFrame()'>BACK</button>";
     sPage += "</div>";
-
-
     sPage += "<div class='a_main'>";
-
+    sPage += "<div class='a_title'>";
+    sPage +=  "<b>" + sFullName.trim() + "'s Profile</b>";
+    sPage += "</div>";
     sPage += "<div class='a_photo'>";
     sPage += "<img src='images/defaultPFP.jpg' class='a_profilePicture'>";
     sPage += "</div>";
-
-    sPage += "<div class='a_mutualFriends'>Friends:";
+    sPage += "<div id='friendsList' class='a_Friends'>";
     sPage += "</div>";
-
-    sPage += "<div class='a_frame'>";
-
-    sPage += "<div class='a_title'>";
-
-    const sFirst = objUserInfo.first.charAt(0).toUpperCase() + objUserInfo.first.slice(1);
-    const sLast = objUserInfo.last.charAt(0).toUpperCase() + objUserInfo.last.slice(1);
-    sPage +=  sFirst + " " + sLast;
+    sPage += "<div class='a_infoFrame'>";
+    sPage += "<div class='a_accountInfoBlock'><b>Account Info:</b></div>";
+    sPage += "<div class='a_accountInfoBlock'>Username: " + objUserData.username + "</div>";
+    sPage += "<div class='a_accountInfoBlock'>First: " + objUserInfo.first.charAt(0).toUpperCase() + objUserInfo.first.slice(1) + "</div>";
+    sPage += "<div class='a_accountInfoBlock'>Last: " + objUserInfo.last.charAt(0).toUpperCase() + objUserInfo.last.slice(1) + "</div>";
+    sPage += "<div class='a_accountInfoBlock'>Joined: " + formatDate(objUserData.created) + "</div>";
+    sPage += "<div class='a_accountInfoBlock'>Last Login: " + formatDate(objUserData.lastlogin) + "</div>";
+    sPage += "<div class='a_accountInfoBlock' style='margin-top: 7px;'><b>Basic Info:</b></div>";
+    sPage += "<div class='a_accountInfoBlock'>Sex: " + checkData(objUserInfo.sex) + "</div>";
+    sPage += "<div class='a_accountInfoBlock'>School: " + checkData(objUserInfo.school) + "</div>";
+    sPage += "<div class='a_accountInfoBlock'>Birthday: " + checkData(objUserInfo.birthday) + "</div>"; // format date maybe
+    sPage += "<div class='a_accountInfoBlock'>City: " + checkData(objUserInfo.city) + "</div>";
+    sPage += "<div class='a_accountInfoBlock'>Relationship: " + checkData(objUserInfo.relationship) + "</div>";
+    sPage += "<div class='a_accountInfoBlock'>Hometown: " + checkData(objUserInfo.hometown) + "</div>";
+    sPage += "<div class='a_accountInfoBlock'>Job: " + checkData(objUserInfo.job) + "</div>";
+    sPage += "<div class='a_accountInfoBlock' style='margin-top: 7px;'><b>Contact Info:</b></div>";
+    sPage += "<div class='a_accountInfoBlock'>Number: " + checkData(objUserInfo.phonenumber) + "</div>";
+    sPage += "<div class='a_accountInfoBlock'>Email: " + checkData(objUserInfo.email) + "</div>";
     sPage += "</div>";
-    sPage += "<button class='a_addFriend'>+</button>";
+    sPage += "<div id='utility' class='a_utility'>";
 
-    sPage += "</div>";
+    sPage += "<button id='editFriendship' class='a_utilButtons' style='top: 10px;' onClick='removeFriend("+objUserData.id+")'>Remove</button>";
 
-    sPage += "</div>";
+
+//     friendAdded(objUserData.id);
 //
-//
-//     sPage += "<span style='font-size: 25px; font-weight: 700;'>" + g_objUserData.username + "</span><br>";
-//     sPage += "<span style='font-size: 20px; float: left;'>Account Info</span><br>";
-//     if (undefined != g_objUserData.info.first || undefined != g_objUserData.info.last)
-//         sPage += "<span style='font-size: 18px; float: left;'>Name: " + g_objUserData.info.first + " " + g_objUserData.info.last + "</span><br>";
-//     sPage += "<span style='font-size: 18px; float: left;'>Member Since: " + g_objUserData.info.created.substring(0, 10) + "</span><br>";
-//     sPage += "<span style='font-size: 18px; float: left;'>Last Login: " + g_objUserData.info.lastlogin.substring(0, 10) + "</span><br>";
-//     sPage += "<span style='font-size: 20px; float: left;'>Basic Info</span><br>";
-//     if (undefined != g_objUserData.info.sex)
-//         sPage += "<span style='font-size: 18px; float: left;'>Sex:</span><br>";
-//     if (undefined != g_objUserData.info.school)
-//         sPage += "<span style='font-size: 18px; float: left;'>School:</span><br>";
-//     if (undefined != g_objUserData.info.birthday)
-//         sPage += "<span style='font-size: 18px; float: left;'>Birthday:</span><br>";
-//     if (undefined != g_objUserData.info.hometown)
-//         sPage += "<span style='font-size: 18px; float: left;'>Hometown:</span><br>";
+//     if (g_objUserData.friendAdded)
+//         sPage += "<button id='editFriendship' class='a_utilButtons' style='top: 10px;' onClick='removeFriend("+objUserData.id+")'>Remove</button>";
+//     else
+//         sPage += "<button id='editFriendship' class='a_utilButtons' style='top: 10px;' onClick='addFriend("+objUserData.id+")'>Add</button>";
+
+
+    sPage += "<button class='a_utilButtons' style='top: 70px;' onClick='messageUser(objUserData.username)'>Message</button>";
+    sPage += "<button class='a_utilButtons' style='top: 130px;' onClick='mentionUser(\"" + objUserData.username + "\")'>Mention</button>";
+    sPage += "</div>";
+    sPage += "</div>";
+
+    pullFriends(objUserData.id);
 
     document.getElementById('Main').innerHTML = sPage;
 }
 
+function friendAdded(nId) {
+    let objFriendship = {
+        userId: g_objUserData.id,
+        friendId: nId
+    }
+    let jsonFriendship = JSON.stringify(objFriendship);
+    postFileFromServer("srv/main.php", "checkFriendship=" + encodeURIComponent(jsonFriendship), checkFriendshipCallback);
+    function checkFriendshipCallback(data) {
+        if (1 == data) // 1 == they are friends
+            setfriendAdded(true);
+        else
+            setfriendAdded(false);
+    }
+}
+
+function setfriendAdded(bAdded) {
+    g_objUserData.friendAdded = bAdded;
+}
+
+function removeFriend(nId) {
+    let objFriendship = {
+        userId: g_objUserData.id,
+        friendId: nId
+    }
+    let jsonFriendship = JSON.stringify(objFriendship);
+    postFileFromServer("srv/main.php", "removeFriendship=" + encodeURIComponent(jsonFriendship), removeFriendshipCallback);
+    function removeFriendshipCallback(data) {
+        MainFrame(); // send user notice
+    }
+}
+
+function pullFriends(nId) {
+    postFileFromServer("srv/main.php", "pullFriends=" + encodeURIComponent(nId), pullFriendsCallback);
+    function pullFriendsCallback(data) {
+        let objFriends = JSON.parse(data);
+        let sFriendsList = "";
+        for (let i=0; i<objFriends.length; i++) {
+            let objCurrFriend = JSON.parse(objFriends[i].info);
+            let sFullName = objCurrFriend.first.charAt(0).toUpperCase() + objCurrFriend.first.slice(1) + " " + objCurrFriend.last.charAt(0).toUpperCase() + objCurrFriend.last.slice(1);
+            sFriendsList += "<div class='a_friendDiv' onClick='AccountInfoSetup(\"" + objFriends[i].username + "\")'>" + objFriends[i].username + "<br>";
+            sFriendsList += sFullName.trim() + "<br>";
+            sFriendsList += "Last Online:<br>"
+            sFriendsList += formatDate(objFriends[i].lastlogin);
+            sFriendsList += "</div>";
+        }
+        document.getElementById('friendsList').innerHTML = sFriendsList;
+    }
+}
+
+function mentionUser(sUser) {
+    MainFrame();
+    document.getElementById('chatterbox').value = "Hey, @" + sUser + "!";
+}
+
+function addFriend(nId) {
+    return;
+}
+
+function messageUser(sUser) {
+    return;
+}
+
+function AccountEditFrame(objUserData, objUserInfo) {
+    let sPage = "";
+    sPage += "<div class='h_topBar' style='border-bottom: none;'>";
+    sPage += "<div class='h_topBarName'>parkerchat</div>";
+    sPage += "<img class='h_searchIcon' src='images/searchicon.png' onClick='search()'>";
+    sPage += "<input type='text' id='search' class='h_searchBox' placeholder='Search'>";
+    sPage += "<button style='width: 64px; height: 100%; float: right;' onClick='MainFrame()'>BACK</button>";
+    sPage += "</div>";
+    sPage += "<div class='a_main'>";
+    sPage += "<div class='a_title'>";
+    sPage +=  "<b>My Profile</b>";
+    sPage += "</div>";
+    sPage += "<div class='a_photo'>";
+    sPage += "<img id='pfp' src='images/defaultPFP.jpg' class='a_profilePicture'>"; // this needs to be done
+    sPage += "</div>";
+    sPage += "<div id='friendsList' class='a_Friends'>";
+    sPage += "</div>";
+    pullFriends(objUserData.id);
+    sPage += "<div class='a_infoFrame'>";
+    sPage += "<div class='a_accountInfoBlock'><b>Account Info:</b></div>";
+    sPage += "<div class='a_accountInfoBlock'>Username: " + objUserData.username + "</div>";
+    sPage += "<div class='a_accountInfoBlock'>First: ";
+    sPage += "<input id='first' type='text' class='a_editData' maxlength=20 value='" + objUserInfo.first.charAt(0).toUpperCase() + objUserInfo.first.slice(1) + "'></div>";
+    sPage += "<div class='a_accountInfoBlock'>Last: ";
+    sPage += "<input id='last' type='text' class='a_editData' maxlength=20 value='" + objUserInfo.last.charAt(0).toUpperCase() + objUserInfo.last.slice(1) + "'></div>";
+    sPage += "<div class='a_accountInfoBlock'>Joined: " + formatDate(objUserData.created) + "</div>";
+    sPage += "<div class='a_accountInfoBlock'>Last Login: " + formatDate(objUserData.lastlogin) + "</div>";
+    sPage += "<div class='a_accountInfoBlock' style='margin-top: 7px;'><b>Basic Info:</b></div>";
+    sPage += "<div class='a_accountInfoBlock'>Sex: ";
+    sPage += "<input id='sex' type='text' class='a_editData' maxlength=20 value='" + checkData(objUserInfo.sex) + "'></div>";
+    sPage += "<div class='a_accountInfoBlock'>School: ";
+    sPage += "<input id='school' type='text' class='a_editData' maxlength=20 value='" + checkData(objUserInfo.school) + "'></div>";
+    sPage += "<div class='a_accountInfoBlock'>Birthday: ";
+    sPage += "<input id='birthday' type='text' class='a_editData' maxlength=20 value='" + checkData(objUserInfo.birthday) + "'></div>";
+    sPage += "<div class='a_accountInfoBlock'>City: ";
+    sPage += "<input id='city' type='text' class='a_editData' maxlength=20 value='" + checkData(objUserInfo.city) + "'></div>";
+    sPage += "<div class='a_accountInfoBlock'>Relationship: ";
+    sPage += "<input id='relationship' type='text' class='a_editData' maxlength=20 value='" + checkData(objUserInfo.relationship) + "'></div>";
+    sPage += "<div class='a_accountInfoBlock'>Hometown: ";
+    sPage += "<input id='hometown' type='text' class='a_editData' maxlength=20 value='" + checkData(objUserInfo.hometown) + "'></div>";
+    sPage += "<div class='a_accountInfoBlock'>Job: ";
+    sPage += "<input id='job' type='text' class='a_editData' maxlength=20 value='" + checkData(objUserInfo.job) + "'></div>";
+    sPage += "<div class='a_accountInfoBlock' style='margin-top: 7px;'><b>Contact Info:</b></div>";
+    sPage += "<div class='a_accountInfoBlock'>Number: ";
+    sPage += "<input id='phonenumber' type='text' class='a_editData' maxlength=20 value='" + checkData(objUserInfo.phonenumber) + "'></div>";
+    sPage += "<div class='a_accountInfoBlock'>Email: ";
+    sPage += "<input id='email' type='text' class='a_editData' style='width: 220px;' maxlength=30 value='" + checkData(objUserInfo.email) + "'></div>";
+    sPage += "</div>";
+    sPage += "<div class='a_utility'>";
+    sPage += "<button class='a_utilButtons' style='top: 10px;'>Edit Photo</button>";
+    sPage += "<button class='a_utilButtons' style='top: 70px;' onClick='editProfile()'>Confirm Changes</button>";
+    sPage += "</div>";
+    sPage += "</div>";
+
+    document.getElementById('Main').innerHTML = sPage;
+}
+
+function editProfile() {
+    let objAccountData = {};
+    objAccountData.first = document.getElementById('first').value;
+    objAccountData.last = document.getElementById('last').value;
+    objAccountData.sex = document.getElementById('sex').value;
+    objAccountData.school = document.getElementById('school').value;
+    objAccountData.birthday = document.getElementById('birthday').value;
+    objAccountData.city = document.getElementById('city').value;
+    objAccountData.relationship = document.getElementById('relationship').value;
+    objAccountData.hometown = document.getElementById('hometown').value;
+    objAccountData.job = document.getElementById('job').value;
+    objAccountData.phonenumber = document.getElementById('phonenumber').value;
+    objAccountData.email = document.getElementById('email').value;
+    let jsonAccountData = JSON.stringify(objAccountData);
+
+    let objData = {
+        id: g_objUserData.id,
+        info: jsonAccountData
+    }
+    let jsonData = JSON.stringify(objData);
+
+    postFileFromServer("srv/main.php", "editAccountData=" + encodeURIComponent(jsonData), editAccountDataCallback);
+    function editAccountDataCallback(data) {
+        MainFrame();
+    }
+}
+
 function search() {
-    alert(document.getElementById('search').value);
+    AccountInfoSetup(document.getElementById('search').value)
+}
+
+function formatDate(sDate) {
+    let sMonth = getMonth(sDate.substring(5,7));
+    let sDay = sDate.substring(8,10);
+    let sYear = sDate.substring(0,4);
+    return sMonth + " " + sDay + ", " + sYear;
+}
+
+function getMonth(nMonthNumber) {
+    if ("01" == nMonthNumber) return "January";
+    if ("02" == nMonthNumber) return "February";
+    if ("03" == nMonthNumber) return "March";
+    if ("04" == nMonthNumber) return "April";
+    if ("05" == nMonthNumber) return "May";
+    if ("06" == nMonthNumber) return "June";
+    if ("07" == nMonthNumber) return "July";
+    if ("08" == nMonthNumber) return "August";
+    if ("09" == nMonthNumber) return "September";
+    if ("10" == nMonthNumber) return "October";
+    if ("11" == nMonthNumber) return "November";
+    if ("12" == nMonthNumber) return "December";
+}
+
+function checkData(sData) {
+    if (undefined === sData)
+        return "";
+    return sData;
 }
 
