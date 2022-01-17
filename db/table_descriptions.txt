@@ -22,6 +22,12 @@ data VARCHAR(16000)
 CREATE TABLE Inbox (
 id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
 user INT UNSIGNED,
-data VARCHAR(16000),
+data VARCHAR(500),
+type INT UNSIGNED,
+other INT UNSIGNED,
 created TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
+// enum = {friendRequest: 0}
+// other is sender
+// user is recieves ID
