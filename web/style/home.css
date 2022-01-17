@@ -17,6 +17,12 @@
     color: white;
 }
 
+.h_link {
+    color: #4267B2;
+    font-size: 25px;
+    margin-top: 19px;
+}
+
 .h_searchBox {
     width: 210px;
     height: 40px;
@@ -185,11 +191,11 @@
 }
 
 .a_Friends {
-    height: 450px;
+    height: 415px;
     width: 198px;
     position: absolute;
     left: 0;
-    top: 50px;
+    top: 85px;
     overflow-y: auto;
 }
 
@@ -279,5 +285,48 @@
     padding-left: 10px;
     padding-top: 4px;
     cursor: pointer;
+}
+
+.a_ajaxFriends {
+    height: 25px;
+    font-family: 'Roboto', sans-serif;
+    font-size: 15px;
+    position: absolute;
+    top: 50px;
+    left: 24px;
+    width: 150px;
+    border: 1px solid #00a550;
+    border-radius: none;
+}
+
+.a_ajaxFriends:focus {
+    outline: none;
+}
+
+.i_main {
+    width: 600px;
+    height: auto;
+    margin-left: auto;
+    margin-right: auto;
+    overflow-y: auto;
+    margin-top: 10px;
+    margin-bottom: 10px;
+}
+
+.i_item {
+    height: 50px;
+    color: white;
+    border: 1px solid;
+    text-align: center;
+    font-size: 15px;
+    font-family: 'Open Sans', sans-serif;
+    border-radius: 5px;
+    width: 400px;
+    margin-top: 6px;
+    font-weight: 700;
+    margin-left: auto;
+    margin-right: auto;
+    cursor: pointer;
+    background-color: #00a550;
 }
 

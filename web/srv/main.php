@@ -10,6 +10,10 @@ if (isset($_POST['checkFriendship']))
     $jsonFriendship = $_POST['checkFriendship'];
 if (isset($_POST['removeFriendship']))
     $jsonRemoveFriendship = $_POST['removeFriendship'];
+if (isset($_POST['pullInbox']))
+    $nInboxId = $_POST['pullInbox'];
+if (isset($_POST['exploreFriends']))
+    $nExploreId = $_POST['exploreFriends'];
 
 if ($sUsername)
     $sFeedback = pullUserData ($sUsername);
@@ -21,6 +25,10 @@ else if ($jsonFriendship)
     $sFeedback = checkFriendship ($jsonFriendship);
 else if ($jsonRemoveFriendship)
     $sFeedback = removeFriendship ($jsonRemoveFriendship);
+else if ($nInboxId)
+    $sFeedback = pullInbox ($nInboxId);
+else if ($nExploreId)
+    $sFeedback = exploreFriends ($nExploreId);
 
 echo $sFeedback;
 
@@ -84,13 +92,99 @@ function checkFriendship ($jsonFriendship) {
     $objFriendship = json_decode($jsonFriendship);
     $sSQL = "SELECT * FROM Friends WHERE a=" . $objFriendship->userId . " AND b=" . $objFriendship->friendId . " OR a=" . $objFriendship->friendId . " AND b=" . $objFriendship->userId;
     $tResult = QueryDB ($sSQL);
-    return $tResult->num_rows;
+
+    $objData = new stdClass();
+    $objData->id = $objFriendship->friendId;
+    $objData->rows = $tResult->num_rows;
+    return json_encode($objData);
 }
 
 function removeFriendship ($jsonRemoveFriendship) {
     $objFriendship = json_decode($jsonRemoveFriendship);
     $sSQL = "DELETE FROM Friends WHERE a=" . $objFriendship->userId . " AND b=" . $objFriendship->friendId . " OR a=" . $objFriendship->friendId . " AND b=" . $objFriendship->userId;
     return QueryDB ($sSQL);
+}
+
+function pullInbox ($nInboxId) {
+    $sSQL = "SELECT * FROM Inbox WHERE user=" . $nInboxId;
+    $tResult = QueryDB ($sSQL);
+    $nRows = $tResult->num_rows;
+    $objInbox = [];
+    if ($nRows > 0) {
+        for ($x=0; $x < $nRows; $x++) {
+            $row = $tResult->fetch_assoc();
+            $objInbox[$x] = new stdClass();
+            $objInbox[$x]->data = $row["data"];
+            $objInbox[$x]->received = $row["created"];
+        }
+    }
+    return json_encode($objInbox);
+}
+
+function getFriendsIDs ($nId) {
+    $sSQL = "SELECT * FROM Friends WHERE a=" . $nId . " OR b=". $nId;
+    $tResult = QueryDB ($sSQL);
+    $nRows = $tResult->num_rows;
+    $objFriends = [];
+    if ($nRows > 0) {
+        for ($x=0; $x < $nRows; $x++) {
+            $row = $tResult->fetch_assoc();
+            if ($row["a"] == $nId)
+                $objFriends[] = $row["b"];
+            else
+                $objFriends[] = $row["a"];
+        }
+    }
+    return $objFriends;
+}
+
+function exploreFriends ($nExploreId) {
+    $sSQL = "SELECT * FROM Friends WHERE a=" . $nExploreId . " OR b=". $nExploreId;
+    $tResult = QueryDB ($sSQL);
+    $nRows = $tResult->num_rows;
+    $objFriends = [];
+    $aFriends = getFriendsIDs ($nExploreId);
+    $nIndex = 0;
+    if ($nRows > 0) {
+        for ($x=0; $x < $nRows; $x++) {
+            $row = $tResult->fetch_assoc();
+            if ($row["a"] == $nExploreId)
+                $nCurr = $row["b"];
+            else
+                $nCurr = $row["a"];
+            $sFriendPull = "SELECT * FROM Friends WHERE a=" . $nCurr . " OR b=". $nCurr . " AND NOT a=" . $nExploreId . " AND NOT b=" . $nExploreId;
+            $tResultFriend = QueryDB ($sFriendPull);
+            $nFriendRows = $tResultFriend->num_rows;
+            if ($nFriendRows > 0) {
+                for ($y=0; $y < $nFriendRows; $y++) {
+                    $friendsrow = $tResultFriend->fetch_assoc();
+                    if ($friendsrow["a"] == $nCurr && !in_array($friendsrow["b"], $aFriends)) { // you dotn have to do this for each friend (could be faster)
+                        $sFriendPullData = "SELECT * FROM Users WHERE id=" . $friendsrow["b"];
+                        $tResultFriendData = QueryDB ($sFriendPullData);
+                        $friendsdatarow = $tResultFriendData->fetch_assoc();
+                        $objFriends[$nIndex] = new stdClass();
+                        $objFriends[$nIndex]->lastlogin = $friendsdatarow["lastlogin"];
+                        $objFriends[$nIndex]->info = $friendsdatarow["info"];
+                        $objFriends[$nIndex]->username = $friendsdatarow["username"];
+                        $objFriends[$nIndex] = json_encode($objFriends[$nIndex]);
+                        $nIndex++;
+                    }
+                    else if (!in_array($friendsrow["a"], $aFriends)) {
+                        $sFriendPullData = "SELECT * FROM Users WHERE id=" . $friendsrow["a"];
+                        $tResultFriendData = QueryDB ($sFriendPullData);
+                        $friendsdatarow = $tResultFriendData->fetch_assoc();
+                        $objFriends[$nIndex] = new stdClass();
+                        $objFriends[$nIndex]->lastlogin = $friendsdatarow["lastlogin"];
+                        $objFriends[$nIndex]->info = $friendsdatarow["info"];
+                        $objFriends[$nIndex]->username = $friendsdatarow["username"];
+                        $objFriends[$nIndex] = json_encode($objFriends[$nIndex]);
+                        $nIndex++;
+                    }
+                }
+            }
+        }
+    }
+    return json_encode($objFriends);
 }
 
 function QueryDB ($sSQL) {

@@ -178,6 +178,8 @@ function MainFrame() {
     let sPage = "";
     sPage += "<div class='h_topBar'>";
     sPage += "<div class='h_topBarName'>parkerchat</div>"; // put messages icon on this bar
+    sPage += "<a href=\"javascript:InboxFrame()\" class='h_topBarName h_link'>Inbox</a>"; // change style
+    sPage += "<a href=\"javascript:ExploreFrame()\" class='h_topBarName h_link'>Explore</a>";
     sPage += "<img class='h_searchIcon' src='images/searchicon.png' onClick='search()'>";
     sPage += "<input type='text' id='search' class='h_searchBox' placeholder='Search'>";
     sPage += "</div>";
@@ -227,9 +229,11 @@ function AccountInfoFrame(jsonUserData) {
     let sPage = "";
     sPage += "<div class='h_topBar' style='border-bottom: none;'>";
     sPage += "<div class='h_topBarName'>parkerchat</div>";
+    sPage += "<a href=\"javascript:InboxFrame()\" class='h_topBarName h_link'>Inbox</a>"; // change style
+    sPage += "<a href=\"javascript:ExploreFrame()\" class='h_topBarName h_link'>Explore</a>";
+        sPage += "<a href=\"javascript:MainFrame()\" class='h_topBarName h_link'>Home</a>";
     sPage += "<img class='h_searchIcon' src='images/searchicon.png' onClick='search()'>";
     sPage += "<input type='text' id='search' class='h_searchBox' placeholder='Search'>";
-    sPage += "<button style='width: 64px; height: 100%; float: right;' onClick='MainFrame()'>BACK</button>";
     sPage += "</div>";
     sPage += "<div class='a_main'>";
     sPage += "<div class='a_title'>";
@@ -238,8 +242,8 @@ function AccountInfoFrame(jsonUserData) {
     sPage += "<div class='a_photo'>";
     sPage += "<img src='images/defaultPFP.jpg' class='a_profilePicture'>";
     sPage += "</div>";
-    sPage += "<div id='friendsList' class='a_Friends'>";
-    sPage += "</div>";
+    sPage += "<input type='text' class='a_ajaxFriends' id='friendsListSearch' onKeyUp='ajaxFriends()'>";
+    sPage += "<div id='friendsList' class='a_Friends'></div>";
     sPage += "<div class='a_infoFrame'>";
     sPage += "<div class='a_accountInfoBlock'><b>Account Info:</b></div>";
     sPage += "<div class='a_accountInfoBlock'>Username: " + objUserData.username + "</div>";
@@ -260,26 +264,16 @@ function AccountInfoFrame(jsonUserData) {
     sPage += "<div class='a_accountInfoBlock'>Email: " + checkData(objUserInfo.email) + "</div>";
     sPage += "</div>";
     sPage += "<div id='utility' class='a_utility'>";
-
-    sPage += "<button id='editFriendship' class='a_utilButtons' style='top: 10px;' onClick='removeFriend("+objUserData.id+")'>Remove</button>";
-
-
-//     friendAdded(objUserData.id);
-//
-//     if (g_objUserData.friendAdded)
-//         sPage += "<button id='editFriendship' class='a_utilButtons' style='top: 10px;' onClick='removeFriend("+objUserData.id+")'>Remove</button>";
-//     else
-//         sPage += "<button id='editFriendship' class='a_utilButtons' style='top: 10px;' onClick='addFriend("+objUserData.id+")'>Add</button>";
-
-
+    sPage += "<input id='editFriendship' type='button' class='a_utilButtons' style='top: 10px;'>";
     sPage += "<button class='a_utilButtons' style='top: 70px;' onClick='messageUser(objUserData.username)'>Message</button>";
     sPage += "<button class='a_utilButtons' style='top: 130px;' onClick='mentionUser(\"" + objUserData.username + "\")'>Mention</button>";
     sPage += "</div>";
     sPage += "</div>";
 
-    pullFriends(objUserData.id);
-
     document.getElementById('Main').innerHTML = sPage;
+
+    pullFriends(objUserData.id);
+    friendAdded(objUserData.id);
 }
 
 function friendAdded(nId) {
@@ -290,15 +284,17 @@ function friendAdded(nId) {
     let jsonFriendship = JSON.stringify(objFriendship);
     postFileFromServer("srv/main.php", "checkFriendship=" + encodeURIComponent(jsonFriendship), checkFriendshipCallback);
     function checkFriendshipCallback(data) {
-        if (1 == data) // 1 == they are friends
-            setfriendAdded(true);
-        else
-            setfriendAdded(false);
-    }
-}
+        let objData = JSON.parse(data);
+        if (1 == objData.rows) { // 1 == they are friends
+            document.getElementById('editFriendship').addEventListener("click", function() { removeFriend(objData.id) });
+            document.getElementById('editFriendship').value = "Remove";
 
-function setfriendAdded(bAdded) {
-    g_objUserData.friendAdded = bAdded;
+        }
+        else {
+            document.getElementById('editFriendship').addEventListener("click", function() { sendFriendRequest(objData.id) });
+            document.getElementById('editFriendship').value = "Add";
+        }
+    }
 }
 
 function removeFriend(nId) {
@@ -318,10 +314,19 @@ function pullFriends(nId) {
     function pullFriendsCallback(data) {
         let objFriends = JSON.parse(data);
         let sFriendsList = "";
+        if (0 == objFriends.length) {
+            sFriendsList += "<div class='a_friendDiv' style='text-align: center; height: 35px; padding-left: 0px;'>No Friends Added</div>";
+            document.getElementById('friendsList').innerHTML = sFriendsList;
+            return;
+        }
+
+        g_objUserData.friendsList = [];
+
         for (let i=0; i<objFriends.length; i++) {
             let objCurrFriend = JSON.parse(objFriends[i].info);
             let sFullName = objCurrFriend.first.charAt(0).toUpperCase() + objCurrFriend.first.slice(1) + " " + objCurrFriend.last.charAt(0).toUpperCase() + objCurrFriend.last.slice(1);
             sFriendsList += "<div class='a_friendDiv' onClick='AccountInfoSetup(\"" + objFriends[i].username + "\")'>" + objFriends[i].username + "<br>";
+            g_objUserData.friendsList.push(objFriends[i]);
             sFriendsList += sFullName.trim() + "<br>";
             sFriendsList += "Last Online:<br>"
             sFriendsList += formatDate(objFriends[i].lastlogin);
@@ -331,12 +336,30 @@ function pullFriends(nId) {
     }
 }
 
+function ajaxFriends() {
+    let sSearch = document.getElementById('friendsListSearch').value;
+
+    let sFriendsList = "";
+
+    for (let i=0; i<g_objUserData.friendsList.length; i++) {
+        let objCurrFriend = JSON.parse(g_objUserData.friendsList[i].info);
+        if (g_objUserData.friendsList[i].username.substring(0, sSearch.length) != sSearch) continue;
+        let sFullName = objCurrFriend.first.charAt(0).toUpperCase() + objCurrFriend.first.slice(1) + " " + objCurrFriend.last.charAt(0).toUpperCase() + objCurrFriend.last.slice(1);
+        sFriendsList += "<div class='a_friendDiv' onClick='AccountInfoSetup(\"" + g_objUserData.friendsList[i].username + "\")'>" + g_objUserData.friendsList[i].username + "<br>";
+        sFriendsList += sFullName.trim() + "<br>";
+        sFriendsList += "Last Online:<br>"
+        sFriendsList += formatDate(g_objUserData.friendsList[i].lastlogin);
+        sFriendsList += "</div>";
+    }
+    document.getElementById('friendsList').innerHTML = sFriendsList;
+}
+
 function mentionUser(sUser) {
     MainFrame();
     document.getElementById('chatterbox').value = "Hey, @" + sUser + "!";
 }
 
-function addFriend(nId) {
+function sendFriendRequest(nId) {
     return;
 }
 
@@ -348,9 +371,11 @@ function AccountEditFrame(objUserData, objUserInfo) {
     let sPage = "";
     sPage += "<div class='h_topBar' style='border-bottom: none;'>";
     sPage += "<div class='h_topBarName'>parkerchat</div>";
+    sPage += "<a href=\"javascript:InboxFrame()\" class='h_topBarName h_link'>Inbox</a>"; // change style
+    sPage += "<a href=\"javascript:ExploreFrame()\" class='h_topBarName h_link'>Explore</a>";
+    sPage += "<a href=\"javascript:MainFrame()\" class='h_topBarName h_link'>Home</a>";
     sPage += "<img class='h_searchIcon' src='images/searchicon.png' onClick='search()'>";
     sPage += "<input type='text' id='search' class='h_searchBox' placeholder='Search'>";
-    sPage += "<button style='width: 64px; height: 100%; float: right;' onClick='MainFrame()'>BACK</button>";
     sPage += "</div>";
     sPage += "<div class='a_main'>";
     sPage += "<div class='a_title'>";
@@ -359,9 +384,8 @@ function AccountEditFrame(objUserData, objUserInfo) {
     sPage += "<div class='a_photo'>";
     sPage += "<img id='pfp' src='images/defaultPFP.jpg' class='a_profilePicture'>"; // this needs to be done
     sPage += "</div>";
-    sPage += "<div id='friendsList' class='a_Friends'>";
-    sPage += "</div>";
-    pullFriends(objUserData.id);
+    sPage += "<input type='text' class='a_ajaxFriends' id='friendsListSearch' onKeyUp='ajaxFriends()'>";
+    sPage += "<div id='friendsList' class='a_Friends'></div>";
     sPage += "<div class='a_infoFrame'>";
     sPage += "<div class='a_accountInfoBlock'><b>Account Info:</b></div>";
     sPage += "<div class='a_accountInfoBlock'>Username: " + objUserData.username + "</div>";
@@ -398,6 +422,7 @@ function AccountEditFrame(objUserData, objUserInfo) {
     sPage += "</div>";
     sPage += "</div>";
 
+    pullFriends(objUserData.id);
     document.getElementById('Main').innerHTML = sPage;
 }
 
@@ -460,3 +485,85 @@ function checkData(sData) {
     return sData;
 }
 
+function InboxFrame() {
+    document.getElementById('Body').style.backgroundColor = "white";
+
+    let sPage = "";
+    sPage += "<div class='h_topBar' style='border-bottom: none;'>";
+    sPage += "<div class='h_topBarName'>parkerchat</div>";
+    sPage += "<a href=\"javascript:MainFrame()\" class='h_topBarName h_link'>Home</a>"; // change style
+    sPage += "<a href=\"javascript:ExploreFrame()\" class='h_topBarName h_link'>Explore</a>";
+    sPage += "<img class='h_searchIcon' src='images/searchicon.png' onClick='search()'>";
+    sPage += "<input type='text' id='search' class='h_searchBox' placeholder='Search'>";
+    sPage += "</div>";
+    sPage += "<div id='i_main' class='i_main'>";
+    sPage += "</div>";
+
+    document.getElementById('Main').innerHTML = sPage;
+
+    pullInbox();
+}
+
+function pullInbox() {
+    postFileFromServer("srv/main.php", "pullInbox=" + encodeURIComponent(g_objUserData.id), pullInboxCallback);
+    function pullInboxCallback(data) {
+        let objInbox = JSON.parse(data);
+        let sPage = "";
+        if (0 === objInbox.length) {
+            sPage += "<div class='i_item' style='background-color: #4267B2; padding-top: 12px;' onClick='ExploreFrame()'>";
+            sPage += "No Recent Activity, Find More Friends?";
+            sPage += "</div>";
+            document.getElementById('i_main').innerHTML = sPage;
+            return;
+        }
+
+        for (let i=0; i<objInbox.length; i++) {
+            sPage += "<div class='i_item'>";
+            sPage += objInbox[i].data + "<br>" + objInbox[i].received;
+            sPage += "</div>";
+        }
+        document.getElementById('i_main').innerHTML = sPage;
+    }
+}
+
+function ExploreFrame() {
+    document.getElementById('Body').style.backgroundColor = "white";
+
+    let sPage = "";
+    sPage += "<div class='h_topBar' style='border-bottom: none;'>";
+    sPage += "<div class='h_topBarName'>parkerchat</div>";
+    sPage += "<a href=\"javascript:MainFrame()\" class='h_topBarName h_link'>Home</a>"; // change style
+    sPage += "<a href=\"javascript:InboxFrame()\" class='h_topBarName h_link'>Inbox</a>";
+    sPage += "<img class='h_searchIcon' src='images/searchicon.png' onClick='search()'>";
+    sPage += "<input type='text' id='search' class='h_searchBox' placeholder='Search'>";
+    sPage += "</div>";
+    sPage += "<div id='e_main' class='i_main'>";
+    sPage += "</div>";
+    document.getElementById('Main').innerHTML = sPage;
+
+    exploreFriends();
+}
+
+function exploreFriends() {
+    postFileFromServer("srv/main.php", "exploreFriends=" + encodeURIComponent(g_objUserData.id), exploreFriendsCallback);
+    function exploreFriendsCallback(data) {
+        let aMutuals = JSON.parse(data);
+        let aSorted = aMutuals.reduce(function(m,v) {
+            m[v] = (m[v]||0)+1; return m;
+        }, {});
+        var aKeyed = [];
+        for (let k in aSorted) aKeyed.push({data:k,n:aSorted[k]});
+        let sPage = "";
+        for (let i=0; i<aKeyed.length; i++) {
+            let objCurrData = JSON.parse(aKeyed[i].data);
+            let objCurrDataInfo = JSON.parse(objCurrData.info);
+            let sFullName = objCurrDataInfo.first.charAt(0).toUpperCase() + objCurrDataInfo.first.slice(1) + " " + objCurrDataInfo.last.charAt(0).toUpperCase() + objCurrDataInfo.last.slice(1);
+            sPage += "<div class='i_item' style='height: 73px;' onClick='AccountInfoSetup(\"" + objCurrData.username + "\")'>";
+            sPage += sFullName.trim() + "<br>";
+            sPage += "Last Online: " + formatDate(objCurrData.lastlogin) + "<br>";
+            sPage += "You have " + aKeyed[i].n + " mutual friends";
+            sPage += "</div>";
+        }
+        document.getElementById('e_main').innerHTML = sPage;
+    }
+}
