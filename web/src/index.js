@@ -186,8 +186,8 @@ function MainFrame() {
 
     sPage += "<div class='h_chatContainer'>";
     sPage += "<div class='h_chatterboxContainer'>";
-    sPage += "<input id='chatterbox' class='h_chatterbox' placeholder='Chat!'>";
-    sPage += "<img class='h_sendIcon' src='images/sendicon.png'>";
+    sPage += "<input id='chatterbox' class='h_chatterbox' placeholder='Chat!' maxlength=250>";
+    sPage += "<img class='h_sendIcon' src='images/sendicon.png' onClick='sendChat()'>";
     sPage += "</div>";
     sPage += "</div>";
 
@@ -197,14 +197,58 @@ function MainFrame() {
     sPage += "<button onClick='AccountInfoSetup(\"" + g_objUserData.username + "\")'>Edit Profile</button>";
     sPage += "</div>";
 
-    sPage += "<div class='h_feedContainer'>";
+    sPage += "<div id='h_feedContainer' class='h_feedContainer'>";
     sPage += "</div>";
 
     sPage += "<div class='h_friendsContainer'>";
     sPage += "</div>";
 
     sPage += "</div>";
+
     document.getElementById('Main').innerHTML = sPage;
+    pullFeed();
+}
+
+function sendChat() {
+    let sChat = document.getElementById('chatterbox').value.trim();
+    if (0 == sChat.length)
+        return;
+
+    let objChatData = {};
+    objChatData.user = g_objUserData.id;
+    objChatData.username = g_objUserData.username;
+    objChatData.data = sChat;
+    let jsonChatData = JSON.stringify(objChatData);
+    postFileFromServer("srv/main.php", "chat=" + encodeURIComponent(jsonChatData), sendChatCallback);
+    function sendChatCallback(data) {
+        MainFrame();
+    }
+}
+
+function pullFeed() {
+    postFileFromServer("srv/main.php", "pullFeed=" + encodeURIComponent(g_objUserData.id), pullFeedCallback);
+    function pullFeedCallback(data) {
+        let objFeedData = JSON.parse(data);
+        let sPage = "";
+        if (0 == objFeedData.length) {
+            sPage += "<div class='i_item' style='background-color: #4267B2;' onClick='ExploreFrame()'>";
+            sPage += "No Recent Activity, Find More Friends?";
+            sPage += "</div>";
+            document.getElementById('h_feedContainer').innerHTML = sPage;
+            return;
+        }
+
+        for (let i=0; i<objFeedData.length; i++) {
+            sPage += "<div class='i_item' onClick='CommentsFrame("+objFeedData[i].id+")'>";
+            sPage += objFeedData[i].username + " says: " + objFeedData[i].chat + "<br>" + objFeedData[i].tSent;
+            sPage += "</div>";
+        }
+        document.getElementById('h_feedContainer').innerHTML = sPage;
+    }
+}
+
+function CommentsFrame(nId) {
+    alert(nId);
 }
 
 function AccountInfoSetup(sUsername) {
@@ -302,7 +346,8 @@ function friendAdded(nId) {
 function acceptRequest(nId) {
     let objNewFriendship = {
         a: g_objUserData.id,
-        b: nId
+        b: nId,
+        data: g_objUserData.username
     }
     let jsonNewFriendship = JSON.stringify(objNewFriendship);
     postFileFromServer("srv/main.php", "acceptRequest=" + encodeURIComponent(jsonNewFriendship), acceptRequestCallback);
@@ -559,11 +604,17 @@ function pullInbox() {
 
         for (let i=0; i<objInbox.length; i++) {
             if (0 == objInbox[i].type) { // friend request recieved
-                sPage += "<div class='i_item' style='height: 100px;'>";
+                sPage += "<div class='i_item'>";
                 sPage += "Friend Request From " + objInbox[i].data + "<br>" + objInbox[i].received + "<br>";
                 sPage += "<a href=\"javascript:AccountInfoSetup('"+objInbox[i].data+"')\">view profile</a><br>";
                 sPage += "<a href=\"javascript:acceptRequest(" + objInbox[i].otherID + ")\">accept</a> ";
                 sPage += "<a href=\"javascript:declineRequest(" + objInbox[i].otherID + ")\">decline</a>";
+                sPage += "</div>";
+            }
+            else if (1 == objInbox[i].type) { // friend request accepted
+                sPage += "<div class='i_item'>";
+                sPage += objInbox[i].data + " accepted your friend request" + "<br>";
+                sPage += "<a href=\"javascript:AccountInfoSetup('"+objInbox[i].data+"')\">view profile</a><br>";
                 sPage += "</div>";
             }
         }

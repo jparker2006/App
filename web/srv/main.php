@@ -18,6 +18,12 @@ if (isset($_POST['sendFriendRequest']))
     $jsonIds = $_POST['sendFriendRequest'];
 if (isset($_POST['acceptRequest']))
     $jsonNewFriendship = $_POST['acceptRequest'];
+if (isset($_POST['declineRequest']))
+    $jsonNotFriendship = $_POST['declineRequest'];
+if (isset($_POST['chat']))
+    $jsonChatData = $_POST['chat'];
+if (isset($_POST['pullFeed']))
+    $nChatId = $_POST['pullFeed'];
 
 if ($sUsername)
     $sFeedback = pullUserData ($sUsername);
@@ -37,6 +43,12 @@ else if ($jsonIds)
     $sFeedback = sendFriendRequest ($jsonIds);
 else if ($jsonNewFriendship)
     $sFeedback = acceptRequest ($jsonNewFriendship);
+else if ($jsonNotFriendship)
+    $sFeedback = declineRequest ($jsonNotFriendship);
+else if ($jsonChatData)
+    $sFeedback = sendChat ($jsonChatData);
+else if ($nChatId)
+    $sFeedback = pullFeed ($nChatId);
 
 echo $sFeedback;
 
@@ -246,11 +258,64 @@ function sendFriendRequest ($jsonIds) {
 }
 
 function acceptRequest ($jsonNewFriendship) {
+    $dbhost = 'localhost';
+    $dbuser = 'jake_network';
+    $dbpass = 'vvVN0EEADb4ZI';
+    $db = "Network";
+    $dbconnect = new mysqli($dbhost, $dbuser, $dbpass, $db);
+
     $objNewFriendship = json_decode($jsonNewFriendship);
     $sSQL = "INSERT INTO Friends(a, b) VALUES(" . $objNewFriendship->a . ", " . $objNewFriendship->b . ")";
-    QueryDB($sSQL);
-    $sSQL = "DELETE FROM Inbox WHERE type=0 AND user=" . $objNewFriendship->a . " OR ". $objNewFriendship->b;
+    $dbconnect->query($sSQL);
+    $sSQL = "INSERT INTO Inbox(user, data, type, other) VALUES(" . $objNewFriendship->b . ", '" . $objNewFriendship->data . "', 1, " . $objNewFriendship->a . ")";
+    $dbconnect->query($sSQL);
+    $sSQL = "DELETE FROM Inbox WHERE user=" . $objNewFriendship->a . " OR " . $objNewFriendship->b . " AND type=0";
+    $dbconnect->query($sSQL);
+    $dbconnect->close();
+    return;
+}
+
+function declineRequest ($jsonNotFriendship) {
+    $objNotFriendship = json_decode($jsonNotFriendship);
+    $sSQL = "DELETE FROM Inbox WHERE type=0 AND user=" . $objNotFriendship->a . " OR ". $objNotFriendship->b;
     return QueryDB($sSQL);
+}
+
+function sendChat ($jsonChatData) {
+    $objChatData = json_decode($jsonChatData);
+    $sSQL = "INSERT INTO Feed(user, username, data) VALUES(" . $objChatData->user . ", '" . $objChatData->username . "' , '".$objChatData->data."')";
+    return QueryDB ($sSQL);
+}
+
+function pullFeed ($nChatId) {
+    $dbhost = 'localhost';
+    $dbuser = 'jake_network';
+    $dbpass = 'vvVN0EEADb4ZI';
+    $db = "Network";
+    $dbconnect = new mysqli($dbhost, $dbuser, $dbpass, $db);
+
+    $aFriends = getFriendsIDs ($nChatId);
+    $aFeed = [];
+    for ($i=0; $i<count($aFriends); $i++) {
+        $sSQL = "SELECT * FROM Feed WHERE user=" . $aFriends[$i];
+        $tResult = $dbconnect->query($sSQL);
+        $nFriendChats = $tResult->num_rows;
+        if ($nFriendChats > 0) {
+            for ($j=0; $j < $nFriendChats; $j++) {
+                $row = $tResult->fetch_assoc();
+                $objCurr = new stdClass();
+                $objCurr->id = $row["id"];
+                $objCurr->userID = $row["user"];
+                $objCurr->username = $row["username"];
+                $objCurr->chat = $row["data"];
+                $objCurr->tSent = $row["sent"];
+                $aFeed[] = $objCurr;
+            }
+        }
+    }
+
+    $dbconnect->close();
+    return json_encode($aFeed);
 }
 
 function QueryDB ($sSQL) {

@@ -28,6 +28,18 @@ other INT UNSIGNED,
 created TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
-// enum = {friendRequest: 0}
-// other is sender
+// inbox table notes
+type enum = {
+    friendRequest: 0,
+    friendRequestAccepted: 1
+}
+// other is sender un
 // user is recieves ID
+
+CREATE TABLE Feed (
+id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+user INT UNSIGNED,
+username VARCHAR(40),
+data VARCHAR(500),
+sent TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
