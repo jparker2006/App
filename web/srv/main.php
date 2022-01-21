@@ -1,7 +1,7 @@
 <?php
 
 if (isset($_POST['pullUserData']))
-    $sUsername = $_POST['pullUserData'];
+    $nUserId = $_POST['pullUserData'];
 if (isset($_POST['editAccountData']))
     $jsonAccountData = $_POST['editAccountData'];
 if (isset($_POST['pullFriends']))
@@ -24,9 +24,13 @@ if (isset($_POST['chat']))
     $jsonChatData = $_POST['chat'];
 if (isset($_POST['pullFeed']))
     $nChatId = $_POST['pullFeed'];
+if (isset($_POST['pullComments']))
+    $nCommentId = $_POST['pullComments'];
+if (isset($_POST['leaveComment']))
+    $jsonComment = $_POST['leaveComment'];
 
-if ($sUsername)
-    $sFeedback = pullUserData ($sUsername);
+if ($nUserId)
+    $sFeedback = pullUserData ($nUserId);
 else if ($jsonAccountData)
     $sFeedback = editAccountData ($jsonAccountData);
 else if ($nId)
@@ -49,23 +53,17 @@ else if ($jsonChatData)
     $sFeedback = sendChat ($jsonChatData);
 else if ($nChatId)
     $sFeedback = pullFeed ($nChatId);
+else if ($nCommentId)
+    $sFeedback = pullComments ($nCommentId);
+else if ($jsonComment)
+    $sFeedback = leaveComment ($jsonComment);
 
 echo $sFeedback;
 
-function pullUserData ($sUsername) {
-    $dbhost = 'localhost';
-    $dbuser = 'jake_network';
-    $dbpass = 'vvVN0EEADb4ZI';
-    $db = "Network";
-    $dbconnect = new mysqli($dbhost, $dbuser, $dbpass, $db);
-
-    $stmt = $dbconnect->prepare("SELECT * FROM Users WHERE username=?");
-    $stmt->bind_param("s", $sUsername);
-    $stmt->execute();
-    $tResult = $stmt->get_result();
+function pullUserData ($nUserId) {
+    $sSQL = "SELECT * FROM Users WHERE id=" . $nUserId;
+    $tResult = QueryDB ($sSQL);
     $row = $tResult->fetch_assoc();
-    $stmt->close();
-    $dbconnect->close();
 
     $objUserData = new stdClass();
     $objUserData->id = $row["id"];
@@ -108,6 +106,7 @@ function pullFriends ($nId) {
             $objFriends[$x] = new stdClass();
             $objFriends[$x]->lastlogin = $friendsrow["lastlogin"];
             $objFriends[$x]->info = $friendsrow["info"];
+            $objFriends[$x]->id = $friendsrow["id"];
             $objFriends[$x]->username = $friendsrow["username"];
         }
     }
@@ -283,8 +282,17 @@ function declineRequest ($jsonNotFriendship) {
 
 function sendChat ($jsonChatData) {
     $objChatData = json_decode($jsonChatData);
-    $sSQL = "INSERT INTO Feed(user, username, data) VALUES(" . $objChatData->user . ", '" . $objChatData->username . "' , '".$objChatData->data."')";
-    return QueryDB ($sSQL);
+
+    $dbhost = 'localhost';
+    $dbuser = 'jake_network';
+    $dbpass = 'vvVN0EEADb4ZI';
+    $db = "Network";
+    $dbconnect = new mysqli($dbhost, $dbuser, $dbpass, $db);
+
+    $stmt = $dbconnect->prepare("INSERT INTO Feed(user, username, data) VALUES(?,?,?)");
+    $stmt->bind_param("sss", $objChatData->user, $objChatData->username, $objChatData->data);
+    $stmt->execute();
+    return $stmt->close();
 }
 
 function pullFeed ($nChatId) {
@@ -293,8 +301,8 @@ function pullFeed ($nChatId) {
     $dbpass = 'vvVN0EEADb4ZI';
     $db = "Network";
     $dbconnect = new mysqli($dbhost, $dbuser, $dbpass, $db);
-
     $aFriends = getFriendsIDs ($nChatId);
+    $aFriends[] = $nChatId;
     $aFeed = [];
     for ($i=0; $i<count($aFriends); $i++) {
         $sSQL = "SELECT * FROM Feed WHERE user=" . $aFriends[$i];
@@ -316,6 +324,40 @@ function pullFeed ($nChatId) {
 
     $dbconnect->close();
     return json_encode($aFeed);
+}
+
+function pullComments ($nCommentId) {
+    $sSQL = "SELECT * FROM Comments WHERE chatId=" . $nCommentId;
+    $tResult = QueryDB ($sSQL);
+    $nRows = $tResult->num_rows;
+    $objComments = [];
+    if ($nRows > 0) {
+        for ($x=0; $x < $nRows; $x++) {
+            $row = $tResult->fetch_assoc();
+            $objComments[$x] = new stdClass();
+            $objComments[$x]->data = $row["data"];
+            $objComments[$x]->user = $row["user"];
+            $objComments[$x]->username = $row["username"];
+            $objComments[$x]->sent = $row["sent"];
+        }
+    }
+    return json_encode($objComments);
+}
+
+function leaveComment ($jsonComment) {
+    $objComment = json_decode($jsonComment);
+
+    $dbhost = 'localhost';
+    $dbuser = 'jake_network';
+    $dbpass = 'vvVN0EEADb4ZI';
+    $db = "Network";
+    $dbconnect = new mysqli($dbhost, $dbuser, $dbpass, $db);
+
+    $stmt = $dbconnect->prepare("INSERT INTO Comments(user, username, chatId, data) VALUES(?,?,?,?)");
+    $stmt->bind_param("ssss", $objComment->user, $objComment->username, $objComment->id, $objComment->data);
+    $stmt->execute();
+    $stmt->close();
+    return $objComment->id;
 }
 
 function QueryDB ($sSQL) {

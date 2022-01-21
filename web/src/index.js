@@ -194,7 +194,7 @@ function MainFrame() {
     sPage += "<div class='h_container'>";
 
     sPage += "<div class='h_accountContainer'>";
-    sPage += "<button onClick='AccountInfoSetup(\"" + g_objUserData.username + "\")'>Edit Profile</button>";
+    sPage += "<button onClick='AccountInfoSetup(" + g_objUserData.id + ")'>Edit Profile</button>";
     sPage += "</div>";
 
     sPage += "<div id='h_feedContainer' class='h_feedContainer'>";
@@ -238,6 +238,8 @@ function pullFeed() {
             return;
         }
 
+        objFeedData = objFeedData.sort((a, b) => new Date(a.tSent) < new Date(b.tSent) ? 1 : -1);
+
         for (let i=0; i<objFeedData.length; i++) {
             sPage += "<div class='i_item' onClick='CommentsFrame("+objFeedData[i].id+")'>";
             sPage += objFeedData[i].username + " says: " + objFeedData[i].chat + "<br>" + objFeedData[i].tSent;
@@ -248,11 +250,72 @@ function pullFeed() {
 }
 
 function CommentsFrame(nId) {
-    alert(nId);
+    let sPage = "";
+    sPage += "<div class='h_topBar'>";
+    sPage += "<div class='h_topBarName' onClick='MainFrame()'>parkerchat</div>"; // put messages icon on this bar
+    sPage += "<a href=\"javascript:InboxFrame()\" class='h_topBarName h_link'>Inbox</a>"; // change style
+    sPage += "<a href=\"javascript:ExploreFrame()\" class='h_topBarName h_link'>Explore</a>";
+    sPage += "<img class='h_searchIcon' src='images/searchicon.png' onClick='search()'>";
+    sPage += "<input type='text' id='search' class='h_searchBox' placeholder='Search'>";
+    sPage += "</div>";
+
+    sPage += "<div class='h_chatContainer'>";
+    sPage += "<div class='h_chatterboxContainer'>";
+    sPage += "<input id='chatterbox' class='h_chatterbox' placeholder='Leave a Comment!' maxlength=250>";
+    sPage += "<img class='h_sendIcon' src='images/sendicon.png' onClick='sendComment("+nId+")'>";
+    sPage += "</div>";
+    sPage += "</div>";
+
+    sPage += "<div id='commentsContainer' class='i_main' style='border: 1px solid black;'>";
+    sPage += "</div>";
+
+    document.getElementById('Main').innerHTML = sPage;
+    pullComments(nId);
 }
 
-function AccountInfoSetup(sUsername) {
-    postFileFromServer("srv/main.php", "pullUserData=" + encodeURIComponent(sUsername), pullUserDataCallback);
+function pullComments(nId) {
+    postFileFromServer("srv/main.php", "pullComments=" + encodeURIComponent(nId), pullCommentsCallback);
+    function pullCommentsCallback(data) {
+        let objComments = JSON.parse(data);
+        let sPage = "";
+        if (0 == objComments.length) {
+            sPage += "<div class='i_item' style='background-color: #4267B2;'>";
+            sPage += "No comments yet, be the first to leave one";
+            sPage += "</div>";
+            document.getElementById('commentsContainer').innerHTML = sPage;
+            return;
+        }
+
+        objComments = objComments.sort((a, b) => new Date(a.sent) < new Date(b.sent) ? 1 : -1);
+
+        for (let i=0; i<objComments.length; i++) {
+            sPage += "<div class='i_item' onClick='AccountInfoSetup("+objComments[i].user+")'>";
+            sPage += objComments[i].username + " replies: " + objComments[i].data + "<br>" + objComments[i].sent;
+            sPage += "</div>";
+        }
+        document.getElementById('commentsContainer').innerHTML = sPage;
+    }
+}
+
+function sendComment(nChatId) {
+    let sChat = document.getElementById('chatterbox').value.trim();
+    if (0 == sChat.length)
+        return;
+
+    let objChatData = {};
+    objChatData.user = g_objUserData.id;
+    objChatData.username = g_objUserData.username;
+    objChatData.data = sChat;
+    objChatData.id = nChatId;
+    let jsonChatData = JSON.stringify(objChatData);
+    postFileFromServer("srv/main.php", "leaveComment=" + encodeURIComponent(jsonChatData), leaveCommentCallback);
+    function leaveCommentCallback(data) {
+        CommentsFrame(data);
+    }
+}
+
+function AccountInfoSetup(nId) {
+    postFileFromServer("srv/main.php", "pullUserData=" + encodeURIComponent(nId), pullUserDataCallback);
     function pullUserDataCallback(data) {
         AccountInfoFrame(data);
     }
@@ -352,7 +415,7 @@ function acceptRequest(nId) {
     let jsonNewFriendship = JSON.stringify(objNewFriendship);
     postFileFromServer("srv/main.php", "acceptRequest=" + encodeURIComponent(jsonNewFriendship), acceptRequestCallback);
     function acceptRequestCallback(data) {
-        MainFrame();
+        InboxFrame();
     }
 }
 
@@ -364,7 +427,7 @@ function declineRequest(nId) {
     let jsonNotFriendship = JSON.stringify(objNotFriendship);
     postFileFromServer("srv/main.php", "declineRequest=" + encodeURIComponent(jsonNotFriendship), declineRequestCallback);
     function declineRequestCallback(data) {
-        MainFrame();
+        InboxFrame();
     }
 }
 
@@ -396,7 +459,7 @@ function pullFriends(nId) {
         for (let i=0; i<objFriends.length; i++) {
             let objCurrFriend = JSON.parse(objFriends[i].info);
             let sFullName = objCurrFriend.first.charAt(0).toUpperCase() + objCurrFriend.first.slice(1) + " " + objCurrFriend.last.charAt(0).toUpperCase() + objCurrFriend.last.slice(1);
-            sFriendsList += "<div class='a_friendDiv' onClick='AccountInfoSetup(\"" + objFriends[i].username + "\")'>" + objFriends[i].username + "<br>";
+            sFriendsList += "<div class='a_friendDiv' onClick='AccountInfoSetup(\"" + objFriends[i].id + "\")'>" + objFriends[i].username + "<br>";
             g_objUserData.friendsList.push(objFriends[i]);
             sFriendsList += sFullName.trim() + "<br>";
             sFriendsList += "Last Online:<br>"
@@ -416,7 +479,7 @@ function ajaxFriends() {
         let objCurrFriend = JSON.parse(g_objUserData.friendsList[i].info);
         if (!ajaxIncludes(sSearch, g_objUserData.friendsList[i].username, objCurrFriend)) continue;
         let sFullName = objCurrFriend.first.charAt(0).toUpperCase() + objCurrFriend.first.slice(1) + " " + objCurrFriend.last.charAt(0).toUpperCase() + objCurrFriend.last.slice(1);
-        sFriendsList += "<div class='a_friendDiv' onClick='AccountInfoSetup(\"" + g_objUserData.friendsList[i].username + "\")'>" + g_objUserData.friendsList[i].username + "<br>";
+        sFriendsList += "<div class='a_friendDiv' onClick='AccountInfoSetup(\"" + g_objUserData.friendsList[i].id + "\")'>" + g_objUserData.friendsList[i].username + "<br>";
         sFriendsList += sFullName.trim() + "<br>";
         sFriendsList += "Last Online:<br>"
         sFriendsList += formatDate(g_objUserData.friendsList[i].lastlogin);
@@ -540,7 +603,7 @@ function editProfile() {
 }
 
 function search() {
-    AccountInfoSetup(document.getElementById('search').value)
+    // AccountInfoSetup(document.getElementById('search').value)
 }
 
 function formatDate(sDate) {
@@ -595,7 +658,7 @@ function pullInbox() {
         let objInbox = JSON.parse(data);
         let sPage = "";
         if (0 === objInbox.length) {
-            sPage += "<div class='i_item' style='background-color: #4267B2; padding-top: 12px;' onClick='ExploreFrame()'>";
+            sPage += "<div class='i_item' style='background-color: #4267B2;' onClick='ExploreFrame()'>";
             sPage += "No Recent Activity, Find More Friends?";
             sPage += "</div>";
             document.getElementById('i_main').innerHTML = sPage;
@@ -606,7 +669,7 @@ function pullInbox() {
             if (0 == objInbox[i].type) { // friend request recieved
                 sPage += "<div class='i_item'>";
                 sPage += "Friend Request From " + objInbox[i].data + "<br>" + objInbox[i].received + "<br>";
-                sPage += "<a href=\"javascript:AccountInfoSetup('"+objInbox[i].data+"')\">view profile</a><br>";
+                sPage += "<a href=\"javascript:AccountInfoSetup("+objInbox[i].otherID+")\">view profile</a><br>";
                 sPage += "<a href=\"javascript:acceptRequest(" + objInbox[i].otherID + ")\">accept</a> ";
                 sPage += "<a href=\"javascript:declineRequest(" + objInbox[i].otherID + ")\">decline</a>";
                 sPage += "</div>";
@@ -614,7 +677,7 @@ function pullInbox() {
             else if (1 == objInbox[i].type) { // friend request accepted
                 sPage += "<div class='i_item'>";
                 sPage += objInbox[i].data + " accepted your friend request" + "<br>";
-                sPage += "<a href=\"javascript:AccountInfoSetup('"+objInbox[i].data+"')\">view profile</a><br>";
+                sPage += "<a href=\"javascript:AccountInfoSetup("+objInbox[i].otherID+")\">view profile</a><br>";
                 sPage += "</div>";
             }
         }
@@ -646,7 +709,7 @@ function exploreFriends() {
         let sPage = "";
 
         if (0 == aMutuals.length) {
-            sPage += "<div class='i_item' style='height: 25px; background-color: black;'>";
+            sPage += "<div class='i_item' style='background-color: black;'>";
             sPage += "You have no mutual friends";
             sPage += "</div>";
             document.getElementById('e_main').innerHTML = sPage;
@@ -659,7 +722,7 @@ function exploreFriends() {
             let objCurrData = JSON.parse(aMutuals[i].json);
             let objCurrDataInfo = JSON.parse(objCurrData.info);
             let sFullName = objCurrDataInfo.first.charAt(0).toUpperCase() + objCurrDataInfo.first.slice(1) + " " + objCurrDataInfo.last.charAt(0).toUpperCase() + objCurrDataInfo.last.slice(1);
-            sPage += "<div class='i_item' style='height: 73px;' onClick='AccountInfoSetup(\"" + objCurrData.username + "\")'>";
+            sPage += "<div class='i_item' onClick='AccountInfoSetup(" + aMutuals[i].id + ")'>";
             sPage += sFullName.trim() + "<br>";
             sPage += "Last Online: " + formatDate(objCurrData.lastlogin) + "<br>";
             sPage += "You have " + aMutuals[i].n + " mutual friends";
